@@ -93,7 +93,39 @@ public:
     size_t degree(const Vertex& v) const { // TODO: Создать степени вхождения и выхождения.
         return data[v].size();
     }
-    // bool is_connected() const; //является ли граф сильно связным
+    
+    bool is_connected() const { //является ли граф сильно связным
+        std::unordered_set<Vertex> visited;
+        std::vector<Vertex> ord;
+        std::function<void(const Vertex&)> ord_f = [&](const Vertex& v) { ord.push_back(v); };
+
+        std::vector<Vertex> keys = data.keys();
+        for (auto v = keys.begin(); v != keys.end(); v++) {
+            if (!visited.contains(*v)) {
+                std::vector<Vertex> temp;
+                dfs_recursive_back_(*v, visited, temp, ord_f);
+            }
+        }
+
+        Graph H = this->inverted_edges();
+        size_t col = 1;
+        HashMap<Vertex, size_t> cols;
+        for (auto v = keys.begin(); v != keys.end(); v++) {
+            cols[*v] = 0;
+        }
+        visited.clear();
+
+        std::function<void(const Vertex&)> col_f = [&](const Vertex& v) { cols[v] = col;};
+
+        for (auto riter = ord.rbegin(); riter != ord.rend(); ++riter) {
+            if (!visited.contains(*riter)) {
+                std::vector<Vertex> temp;
+                H.dfs_recursive_(*riter, visited, temp, col_f);
+                col++;
+            }
+        }
+        return !cols.contains_value(2);
+    } 
 
     std::vector<Edge> shortest_path(const Vertex& from, const Vertex& to) const {
         /* Алгоритм Дейкстры */
@@ -173,6 +205,21 @@ public:
             std::cout << "]\n";
         }
     }
+
+    Graph inverted_edges() const {
+        Graph inverse = Graph();
+
+        std::vector<Vertex> keys = data.keys();
+        for (auto v = keys.begin(); v != keys.end(); v++) {
+            const std::vector<Edge>& edges = data[*v];
+            for (size_t i = 0; i < edges.size(); i++) {
+                const Edge& e = edges[i];
+                inverse.add_edge(e.to, e.from, e.d);
+            }
+        }
+        return inverse;
+    }
+
 private:
     HashMap<Vertex, std::vector<Edge>> data;
 
@@ -186,6 +233,19 @@ private:
             if (!visited.contains(edges[i].to))
                 dfs_recursive_(edges[i].to, visited, order, action);
         }
+    }
+
+    void dfs_recursive_back_(const Vertex& vertex, std::unordered_set<Vertex>& visited, std::vector<Vertex>& order, std::function<void(const Vertex&)>& action) const {
+        if (visited.contains(vertex)) return;
+        visited.insert(vertex);
+        order.push_back(vertex);
+        
+        const std::vector<Edge>& edges = data[vertex];
+        for (size_t i = 0; i < edges.size(); i++) {
+            if (!visited.contains(edges[i].to))
+                dfs_recursive_(edges[i].to, visited, order, action);
+        }
+        action(vertex);
     }
 };
 

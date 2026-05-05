@@ -21,5 +21,14 @@ int main() {
         std::cout << "{" << it->from << " -> " << it->to << ", " << "d: " << it->d << "} ";
     }
     std::cout << "\n";
-    // g.print();
+    g.print();
+    Graph<int> g1 = g.inverted_edges();
+    std::cout << "\n";
+    g1.print();
+
+    std::cout << "g is_connected: " << g.is_connected() << "\n";
+
+    Graph<int> con;
+    con.add_edge(1, 2, 1.0); con.add_edge(2, 3, 1.0); con.add_edge(3, 4, 1.0); con.add_edge(4, 1, 1.0);
+    std::cout << "con is_connected: " << con.is_connected() << "\n";
 }

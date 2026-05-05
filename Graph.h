@@ -1,6 +1,11 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 #include <vector>
+#include <unordered_set>
+#include <queue>
+#include <functional>
+#include <iostream>
+#include <ostream>
 #include "HashMap.h"
 
 template<typename Vertex, typename Distance = double>
@@ -31,7 +36,8 @@ public:
             data.insert(from, std::vector<Edge>());
         if (!data.contains_key(to))
             data.insert(to, std::vector<Edge>());
-        data[from].push_back(Edge(from, to, d));
+        if (!has_edge(from, to))
+            data[from].push_back(Edge(from, to, d));
     }
 
     bool remove_edge(const Vertex& from, const Vertex& to) {
@@ -80,15 +86,108 @@ public:
         return data[vertex];
     }
 
-    // size_t order() const; //порядок 
-    // size_t degree(const Vertex& v) const; //степень вершины
+    size_t order() const {
+        return data.size();
+    }
+
+    size_t degree(const Vertex& v) const { // TODO: Создать степени вхождения и выхождения.
+        return data[v].size();
+    }
     // bool is_connected() const; //является ли граф сильно связным
 
-    // std::vector<Edge> shortest_path(const Vertex& from, const Vertex& to) const; 
+    std::vector<Edge> shortest_path(const Vertex& from, const Vertex& to) const {
+        /* Алгоритм Дейкстры */
+        std::unordered_set<Vertex> visited;
+        HashMap<Vertex, Distance> d;
+        HashMap<Vertex, std::vector<Edge>> paths;
+
+        std::vector<Vertex> keys = data.keys();
+        for (auto v = keys.begin(); v != keys.end(); v++) {
+            d[*v] = Distance(INFINITY);
+            paths[*v] = std::vector<Edge>();
+        }
+        d[from] = 0;
+
+        std::priority_queue<Vertex> queue;
+        queue.push(from);
+        Vertex v = from;
+        for (size_t it = 0; it < keys.size(); it++) {
+            if (queue.empty())
+                break;
+            v = queue.top();
+            queue.pop();
+
+            visited.insert(v);
+
+            const std::vector<Edge>& edges = data[v];
+            for (size_t i = 0; i < edges.size(); i++) {
+                if (d[v] + edges[i].d < d[edges[i].to]) {
+                    if (!visited.contains(edges[i].to)) {
+                        queue.push(edges[i].to);
+                    }
+                    d[edges[i].to] = d[v] + edges[i].d;
+                    paths[edges[i].to] = paths[v];
+                    paths[edges[i].to].push_back(edges[i]);
+                }
+            }
+        }
+        // Визуализация для отладки :)
+        // for (auto v = keys.begin(); v != keys.end(); v++) {
+        //     std::vector<Edge>& path = paths[*v];
+        //     std::cout << *v << ": ";
+        //     for (auto it = path.begin(); it != path.end(); it++) {
+        //         std::cout << "{" << it->from << " -> " << it->to << ", " << "d: " << it->d << "} ";
+        //     }
+        //     std::cout << "\n";
+        // }
+
+        return paths[to];
+    }
     
-    // std::vector<Vertex> walk(const Vertex& start_vertex, std::function<void(const Vertex&)> action) const; //обход
+    std::vector<Vertex> walk(const Vertex& start_vertex, std::function<void(const Vertex&)> action) const {
+        /* Обход в глубину */
+        std::unordered_set<Vertex> visited;
+        std::vector<Vertex> order;
+        dfs_recursive_(start_vertex, visited, order, action);
+
+        std::vector<Vertex> keys = data.keys();
+        for (auto v = keys.begin(); v != keys.end(); v++) {
+            dfs_recursive_(*v, visited, order, action);
+        }
+
+        return order;
+    }
+
+    void print() {
+        std::vector<Vertex> keys = data.keys();
+        for (auto v = keys.begin(); v != keys.end(); v++) {
+            const std::vector<Edge>& edges = data[*v];
+            if (edges.empty()) continue;
+            std::cout << *v << ": [";
+            for (size_t i = 0; i < edges.size(); i++) {
+                const Edge& e = edges[i];
+                std::cout << "{-> " << e.to << ", " << "d: " << e.d << "}";
+                if (i != edges.size() - 1)
+                    std::cout << ", ";
+            }
+            std::cout << "]\n";
+        }
+    }
 private:
     HashMap<Vertex, std::vector<Edge>> data;
+
+    void dfs_recursive_(const Vertex& vertex, std::unordered_set<Vertex>& visited, std::vector<Vertex>& order, std::function<void(const Vertex&)>& action) const {
+        if (visited.contains(vertex)) return;
+        visited.insert(vertex);
+        order.push_back(vertex);
+        action(vertex);
+        const std::vector<Edge>& edges = data[vertex];
+        for (size_t i = 0; i < edges.size(); i++) {
+            if (!visited.contains(edges[i].to))
+                dfs_recursive_(edges[i].to, visited, order, action);
+        }
+    }
 };
+
 
 #endif /* GRAPH_H */

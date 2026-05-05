@@ -175,6 +175,39 @@ public:
 
         return paths[to];
     }
+
+    HashMap<Vertex, Distance> dijkstra_lengths(const Vertex& from) {
+        std::unordered_set<Vertex> visited;
+        HashMap<Vertex, Distance> d;
+
+        std::vector<Vertex> keys = data.keys();
+        for (auto v = keys.begin(); v != keys.end(); v++) {
+            d[*v] = Distance(INFINITY);
+        }
+        d[from] = 0;
+        std::priority_queue<Vertex> queue;
+        queue.push(from);
+        Vertex v = from;
+        for (size_t it = 0; it < keys.size(); it++) {
+            if (queue.empty())
+                break;
+            v = queue.top();
+            queue.pop();
+
+            visited.insert(v);
+
+            const std::vector<Edge>& edges = data[v];
+            for (size_t i = 0; i < edges.size(); i++) {
+                if (d[v] + edges[i].d < d[edges[i].to]) {
+                    if (!visited.contains(edges[i].to)) {
+                        queue.push(edges[i].to);
+                    }
+                    d[edges[i].to] = d[v] + edges[i].d;
+                }
+            }
+        }
+        return d;
+    }
     
     std::vector<Vertex> walk(const Vertex& start_vertex, std::function<void(const Vertex&)> action) const {
         /* Обход в глубину */

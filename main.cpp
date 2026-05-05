@@ -1,6 +1,33 @@
 #include <iostream>
 #include "Graph.h"
 
+template<typename Vertex, typename Distance = double> 
+Vertex find_center(Graph<Vertex,Distance> g) {
+    std::vector<Vertex> keys = g.vertices();
+
+    HashMap<Vertex, Distance> excents;
+    for (auto v = keys.begin(); v != keys.end(); v++) {
+        HashMap<Vertex, Distance> d_v = g.dijkstra_lengths(*v);
+        
+        Distance max_dist = Distance(0);
+        std::vector<Vertex> k = d_v.keys();
+        for (auto it = k.begin(); it != k.end(); it++) {
+            if (d_v[*it] > max_dist) max_dist = d_v[*it];
+        }
+        excents[*v] = max_dist;
+    }
+
+    Distance min_r = Distance(INFINITY);
+    Vertex min_v;
+    for (auto v = keys.begin(); v != keys.end(); v++) {
+        if (excents[*v] < min_r) {
+            min_r = excents[*v];
+            min_v = *v;
+        }
+    }
+    return min_v;
+}
+
 
 int main() {
     Graph<int> g = Graph<int>();
@@ -31,4 +58,6 @@ int main() {
     Graph<int> con;
     con.add_edge(1, 2, 1.0); con.add_edge(2, 3, 1.0); con.add_edge(3, 4, 1.0); con.add_edge(4, 1, 1.0);
     std::cout << "con is_connected: " << con.is_connected() << "\n";
+
+    std::cout << "find_center(g): " << find_center(g) << "\n";
 }
